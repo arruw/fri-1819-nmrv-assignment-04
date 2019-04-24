@@ -1,4 +1,4 @@
-function [A,C,Q,r] = generate_model(model, q, r)
+function [A,C,Q,R] = generate_model(model, q, r)
 % OUTPUTS:
 % A - system matrix
 % C - observation matrix
@@ -42,5 +42,6 @@ end
         
     A = subs(Fi, [sym_T sym_q], [1 q]);
     Q = subs(Q, [sym_T sym_q], [1 q]);
+    R = [r 0; 0 r];
 end
 
