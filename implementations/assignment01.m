@@ -1,8 +1,8 @@
 rng('default');
 rng(1);
 
-% [x,y] = generate_random_trajectory(30);
-[x,y] = generate_spiral_trajectory(30);
+% [x,y] = generate_random_trajectory(40);
+[x,y] = generate_spiral_trajectory(40);
 
 figure(1); clf;
 plot_kalman(3, 5, 1, x, y,  "RW", 100,  1);

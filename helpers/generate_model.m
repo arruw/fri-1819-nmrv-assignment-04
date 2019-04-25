@@ -31,7 +31,7 @@ switch model
         % where x,y is position, xv,yv is the velocity and xa,ya is the
         % acceleration
         
-        F = [0 0 1 0 1 0; 0 0 0 1 0 1; 0 0 0 0 0 0; 0 0 0 0 0 0; 0 0 0 0 0 0; 0 0 0 0 0 0];
+        F = [0 0 1 0 0 0; 0 0 0 1 0 0; 0 0 0 0 1 0; 0 0 0 0 0 1; 0 0 0 0 0 0; 0 0 0 0 0 0];
         L = [0 0 1 0 0 0; 0 0 0 1 0 0]';
         C = [1 0 0 0 0 0; 0 1 0 0 0 0];
         
@@ -40,8 +40,8 @@ switch model
 end
 
     syms sym_T sym_q
-    Fi = expm(F*sym_T)
-    Q = int((Fi*L)*sym_q*(Fi*L)',sym_T,0,sym_T)
+    Fi = expm(F*sym_T);
+    Q = int((Fi*L)*sym_q*(Fi*L)',sym_T,0,sym_T);
         
     A = subs(Fi, [sym_T sym_q], [1 q]);
     Q = subs(Q, [sym_T sym_q], [1 q]);
