@@ -1,7 +1,8 @@
+clear; clc;
 rng('default');
 rng(1);
 
-% [x,y] = generate_random_trajectory(40);
+%[x,y] = generate_random_trajectory(20, 40, 0.8);
 [x,y] = generate_spiral_trajectory(40);
 
 figure(1); clf;
@@ -50,12 +51,15 @@ end
 
 function plot_kalman(cols, rows, i, x, y, model, q, r)
     label = model + " q=" + num2str(q) + " r=" + (r);
-    subplot(cols,rows,i); plot(x, y, 'r-o'); axis square; title(label); drawnow;
+    subplot(cols,rows,i); hold on;
+        plot(x, y, 'r-o'); axis square; title(label);
+        plot(x(1), y(1), 'r.', 'MarkerSize', 20);
+        drawnow;
     
-    [sx, sy] = kalman_apply(x, y, model, q, r);
-    
-    hold on;
-    plot(sx, sy, 'b-o');
+        [sx, sy] = kalman_apply(x, y, model, q, r);
+
+        plot(sx, sy, 'b-o');
+        plot(x(1), y(1), 'r.', 'MarkerSize', 20);
+        drawnow;
     hold off;
-    drawnow;
 end

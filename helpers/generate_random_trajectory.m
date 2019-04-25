@@ -1,9 +1,9 @@
-function [x,y] = generate_random_trajectory(N)
+function [x,y] = generate_random_trajectory(N, scale, alpha)
 
-x = zeros(N);
-y = zeros(N);
+x = ones(N, 1);
+y = ones(N, 1);
 
-d = smoothdata(rand(N,2)*10-5);
+d = round(smoothdata(rand(N,2)*scale-(scale*alpha/2)));
 
 for i = 2:N
     x(i) = x(i-1) + d(i, 1);
