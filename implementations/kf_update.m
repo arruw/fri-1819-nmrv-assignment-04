@@ -18,14 +18,14 @@ function [state, location] = kf_update(state, I, params)
         
         % extract model
         template = get_patch(I, [state.particles(i, 1) state.particles(i, 2)], 1, [state.bbox(3) state.bbox(4)]);
-        color_pdf = extract_color_pdf(template, params.bins, state.cos_window);
+        hist = extract_histogram(template, params.bins, state.kernel);
         
-        % calculate similarity (hellinger distance values between 0 and 1)
-        d = hellinger_distance(state.color_pdf, color_pdf);
+        d = 1-sum(sqrt(state.hist.*hist), 'all');
         
         % convert similarity measure to weight
         state.weights(i, 1) = exp(-(d^2)/(2*params.q));
         % state.weights(i, 1) = d;
+        state.weights(i, 1) = exp(-(d)/2*(params.sigma^2));
     end
         
     % d) compute new location of the target (weighted sum)
@@ -39,7 +39,7 @@ function [state, location] = kf_update(state, I, params)
     color_pdf = extract_color_pdf(template, params.bins, state.cos_window);
     
     % update model
-    state.color_pdf = (1-params.alpha)*state.color_pdf + params.alpha*color_pdf;
+    % state.color_pdf = (1-params.alpha)*state.color_pdf + params.alpha*color_pdf;
     
     state.bbox = [...
         state.center(1)-state.bbox(3)/2 ...
