@@ -22,7 +22,7 @@ switch model
         % where x,y is position and xv,yv is the velocity
         
         F = [0 0 1 0; 0 0 0 1; 0 0 0 0; 0 0 0 0];
-        L = [1 0 0 0; 0 1 0 0]';
+        L = [0 0 1 0; 0 0 0 1]';
         C = [1 0 0 0; 0 1 0 0];
         
     % Nearly Constant Acceleration
@@ -42,9 +42,9 @@ end
     syms sym_T sym_q
     Fi = expm(F*sym_T);
     Q = int((Fi*L)*sym_q*(Fi*L)',sym_T,0,sym_T);
-        
-    A = subs(Fi, [sym_T sym_q], [1 q]);
-    Q = subs(Q, [sym_T sym_q], [1 q]);
+    
+    A = double(subs(Fi, [sym_T sym_q], [1 q]));
+    Q = double(subs(Q, [sym_T sym_q], [1 q]));
     R = [r 0; 0 r];
 end
 
