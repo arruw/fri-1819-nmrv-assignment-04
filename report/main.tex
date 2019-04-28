@@ -8,6 +8,7 @@
 \usepackage{siunitx}
 \usepackage{csvsimple}
 \usepackage{subcaption}
+\usepackage{amsmath}
 % 
 \begin{document}
 % 
@@ -19,5 +20,166 @@
 %
  
 \section{Introduction}
+In this assignment we had task to implement different motion models using Kalman filter. And in the second part of the assignment we had to implement tracker with a particle filter. At the end we analysed different parameters and report how they effect object tracking.
+
+\section{Motion models and Kalman filter}
+The first assignment was to derive equations for few different motion models. This motion models are Random Walk (RW), Nearly Constant Velocity (NCV) and Nearly Constant Acceleration (NCA).
+
+We had implemented function that calculates motion model matrixes (system, observation, system noise and observation noise). This function is located in \textit{"helpers/generate\_model.m"}.
+
+Next we compared this three different motion models with different parameters (\textit{q} and \textit{p}) and motions (spiral and directed random). The results are visualized on the figure \ref{img_kalman_filter_comparison}. From here we can observe that parameter \textit{q} effects the accuracy of the filtered measurement. And the parameter \textit{r} effects the smoothens of the filtered measurement. This visualization is implemented in \textit{"implementations/assignment01.m"}.
+
+\begin{figure}
+    \centering
+
+    \begin{subfigure}{\textwidth}
+        \centering
+        \includegraphics[trim=150 50 150 25,clip,width=\linewidth]{results/kalman_spiral.jpg}
+        \caption{Spiral path}
+    \end{subfigure}
+    
+    \begin{subfigure}{\textwidth}
+        \centering
+        \includegraphics[trim=150 50 150 0,clip,width=\linewidth]{results/kalman_random.jpg}
+        \caption{Directed random path}
+    \end{subfigure}
+    
+    \caption{Comparison of the Kalman filter update between different motion models (RW, NCV and NCA), parameters (\textit{p} and \textit{q}) and motions (spiral path and directed random path).
+    \newline
+    \newline\textit{Red dot} - Start position
+    \newline\textit{Red circle and line} - Measurement
+    \newline\textit{Blue circle and line} - Filtered measurement}
+    \label{img_kalman_filter_comparison}
+\end{figure}
+
+\newpage
+
+\section{Particle filter object tracker}
+
+The main idea of the particle filter object tracker is to sample many particles around the current position of the object and then on every frame apply motion model to each of them. Motion model consist of deterministic motion and noise. After particles are moved to new position, we need to calculate its weights. In order to calculate weights we have to extract visual model at the location of the particle (in our case RGB color histogram) and compare it with the visual model of the tracker. We used Hellinger distance to evaluate similarity between two RGB color histograms. To calculate new object position we just perform weighted sum of the particles with corresponding weights.
+
+\subsection{Parameters}
+
+We tested our implementation of the particle filter object tracker on few different parameters:
+
+\begin{enumerate}
+    \item \textbf{\textit{motion model}} - Motion model represents expected motion of the object in its environnement. Most general is the Random Walk motion model. The other two that we implemented are Nearly Constant Velocity and Nearly Constant Acceleration. This two motion models are useful if the object moves with nearly constant velocity or acceleration. Example for this would be tracking car with a fixed camera. It turned out that the simplest motion model was best for sequences in VOT 2014\footnote{http://www.votchallenge.net/vot2014}. We assume that reason for this is camera movement.
+    \item \textbf{\textit{bins}} - Number of color histogram bins. More bins results in better tracking, but we found that 20 bins is enough. This parameter also effects tracking speed.
+    \item \textbf{\textit{particles}} - Number of particles used. We found out that in our case best option is to use 50 particles. We ware surprised that use of more particles doesn't necessary improve the tracking performance in sense of the accuracy and the robustness. Number of particles also greatly effects performance in sense of the FPS, with more particles our tracker achieves less FPS.
+    \item \textbf{\textit{alpha}} - Update speed of the visual model. As usually some low value, in our case 0.01 turned out to be the best option.
+\end{enumerate}
+
+There is hidden parameter (\textit{q}) that depends to the size of the tracking object ($w$ - width and $h$ - height). With try and error we found out that best value is calculated as:
+\begin{align}
+    q = (w+h)*min(w, h)/max(w, h)
+\end{align}
+
+To find best values for previously described parameters, we assumed that all parameters are independent. Then we used \textit{Tracking toolkit lite}\footnote{https://github.com/alanlukezic/tracking-toolkit-lite} to analyse each of the parameters. Final comparison is visualized in figure \ref{img_particle_filter_parameters_comparison}. From there we can observe best parameter combination ($motion\ model = "RW"$, $bins = 20$, $particles = 50$ and $alpha = 0.01$).
+
+\begin{figure}
+    \centering
+
+    \begin{subfigure}{0.48\textwidth}
+        \centering
+        \includegraphics[trim=375 25 375 55,clip,width=\linewidth]{results/motion_model_comparison.jpg}
+        \caption{Comparing parameter \textit{motion model}}
+    \end{subfigure}
+    \hspace*{\fill}
+    \begin{subfigure}{0.48\textwidth}
+        \centering
+        \includegraphics[trim=290 25 290 43,clip,width=\linewidth]{results/color_bins_comparison.png}
+        \caption{Comparing parameter \textit{bins}}
+    \end{subfigure}
+    
+    \begin{subfigure}{0.48\textwidth}
+        \centering
+        \includegraphics[trim=50 100 50 100,clip,width=\linewidth]{results/numb_particles_comparison.png}
+        \caption{Comparing parameter \textit{particles}}
+    \end{subfigure}
+    \hspace*{\fill}
+    \begin{subfigure}{0.48\textwidth}
+        \centering
+        \includegraphics[trim=290 25 290 43,clip,width=\linewidth]{results/update_speed_comparison.png}
+        \caption{Comparing parameter \textit{alpha}}
+    \end{subfigure}
+
+    \caption{Comparison of the different parameters and its effects on the particle filter object tracking accuracy and robustness.
+    \newline
+    \newline
+    The legend is represented with the following notation: \newline
+    \textit{\textless motion model\textgreater\textunderscore\textless bins\textgreater\textunderscore\textless particles\textgreater\textunderscore\textless alpha\textgreater}, where the first digit is whole number and all the rest are decimals.}
+    \label{img_particle_filter_parameters_comparison}
+\end{figure}
+
+After we found optimal parameter values, we performed performance analysis. The results are listed in table \ref{tbl_particle_filter_performance_analysis}. We can see that our implementation in average achieves around 60 FPS, that means we can track two object in the real-time. We also visualized particles while tracking, size of the particle corresponds with its weight. Few frames are visualized on the figure \ref{img_tracker_best_worst}.
+
+\begin{figure}
+    \centering
+
+    \begin{subfigure}{0.23\textwidth}
+        \includegraphics[trim=0 0 0 0,clip,width=\linewidth]{results/best_surfing.png}
+        \caption{\textit{surfing}}
+    \end{subfigure}
+    \hspace*{\fill}
+    \begin{subfigure}{0.23\textwidth}
+        \includegraphics[trim=0 0 0 0,clip,width=\linewidth]{results/best_sunshade.png}
+        \caption{\textit{sunshade}}
+    \end{subfigure}
+    \hspace*{\fill}
+    \begin{subfigure}{0.23\textwidth}
+        \includegraphics[trim=0 0 0 0,clip,width=\linewidth]{results/worst_fernando.png}
+        \caption{\textit{fernando}}
+    \end{subfigure}
+    \hspace*{\fill}
+    \begin{subfigure}{0.23\textwidth}
+        \includegraphics[trim=0 0 0 0,clip,width=\linewidth]{results/worst_drunk.png}
+        \caption{\textit{drunk}}
+    \end{subfigure}
+
+    \caption{Comparison between good tracking performance on sequence (a) and (b), and bad performance on sequence (c) and (d). Yellow circles represents particle and its weight. Note that sequence (c) contain very small particles and thus these are not visible.}
+    \label{img_tracker_best_worst}
+\end{figure}
+
+\begin{table}
+\begin{center}
+\begin{tabular}{l c c c c c}
+\hline 
+{\bf Sequence} & {\bf Overlap} & {\bf Failures} & {\bf FPS} & {\bf F2O} & {\bf Frames} \\
+\hline 
+ball & 0.54 & 1 & 66.11 & 22.45 & 602 \\
+basketball & 0.64 & 4 & 50.09 & 11.74 & 725 \\
+bicycle & 0.43 & 0 & 106.37 & 27.27 & 271 \\
+bolt & 0.64 & 1 & 67.10 & 13.85 & 350 \\
+car & 0.26 & 1 & 103.53 & 26.47 & 252 \\
+david & 0.32 & 8 & 44.33 & 10.80 & 770 \\
+diving & 0.41 & 5 & 40.47 & 9.59 & 219 \\
+drunk & 0.27 & 34 & 22.66 & 5.62 & 1210 \\
+fernando & 0.29 & 8 & 21.25 & 5.02 & 292 \\
+fish1 & 0.33 & 0 & 86.40 & 20.22 & 436 \\
+fish2 & 0.37 & 2 & 57.09 & 14.01 & 310 \\
+gymnastics & 0.55 & 1 & 41.18 & 10.12 & 207 \\
+hand1 & 0.51 & 0 & 64.48 & 17.93 & 244 \\
+hand2 & 0.43 & 5 & 42.16 & 10.16 & 267 \\
+jogging & 0.72 & 2 & 63.54 & 20.57 & 307 \\
+motocross & 0.35 & 4 & 26.44 & 7.12 & 164 \\
+polarbear & 0.51 & 0 & 63.67 & 14.48 & 371 \\
+skating & 0.41 & 0 & 70.86 & 17.14 & 400 \\
+sphere & 0.43 & 0 & 43.36 & 10.39 & 201 \\
+sunshade & 0.65 & 0 & 76.24 & 20.23 & 172 \\
+surfing & 0.69 & 0 & 92.57 & 24.58 & 282 \\
+torus & 0.33 & 4 & 59.97 & 15.55 & 264 \\
+trellis & 0.44 & 2 & 64.52 & 15.91 & 569 \\
+tunnel & 0.33 & 3 & 71.99 & 17.51 & 731 \\
+woman & 0.56 & 3 & 60.15 & 14.18 & 597 \\
+\hline 
+{\bf Average} & 0.46 & 3.52 & 60.26 & 15.32 & 408.52 \\
+\end{tabular}
+\end{center}
+\caption{Performance analysis on the VOT 2014 dataset. The F2O measure compares initialization time to the average time of the following updates.}
+\label{tbl_particle_filter_performance_analysis}
+\end{table}
+    
+\section{Conclusion}
+In this assignment we learned about particle filters. We shoved that it is possible to use Random Walk motion model and RGB color histogram as visual model to track objects. But we ware surprised that only Random Walk motion model worked well on our sequences. Also we assume that our calculation of the particle weights is slightly incorrect, because there are many small particles and a few big one. We tried to find out why this is the case, but we ware unsuccessful.
 
 \end{document}

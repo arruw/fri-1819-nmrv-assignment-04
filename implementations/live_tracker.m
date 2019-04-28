@@ -1,5 +1,7 @@
 % YUY2_1280x720
 % YUY2_640x360
+imaqreset
+imaqmex('feature','-limitPhysicalMemoryUsage',false);
 vidObj = videoinput('linuxvideo', 1, 'YUY2_640x360');
 vidObj.ReturnedColorspace = 'rgb';
 vidObj.Timeout = 500;
@@ -12,12 +14,13 @@ flag_init = true;
 flag_stop = false;
 
 params = struct;
-params.sigma = 2;
-params.peak = 100;
-params.s2tr = 2;
-params.alpha = 0.125;
-params.psr = 0.05;
-params.lambda = 1e-5;
+params.model = "RW";
+params.r = 1;
+params.sigma = 0.2;     % epanechnikov kernel sigma
+params.bins = 20;        % number of histogram bins
+params.N = 30;         % number of particles
+params.alpha = 0.01;
+params.plot = true;
 
 frame = 1;
 while true

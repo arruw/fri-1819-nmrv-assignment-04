@@ -3,7 +3,7 @@ fps = [];
 f2o = [];
 n_frames = [];
 
-baseline_path = './workspace/results/mosse_20_20_0125/baseline';
+baseline_path = './workspace/results/rw_20_50_001/baseline';
 sequences = dir(baseline_path);
 for i = 3:length(sequences)
     sequence = sequences(i).name;

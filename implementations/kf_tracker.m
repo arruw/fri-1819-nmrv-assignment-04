@@ -1,30 +1,20 @@
 function kf_tracker()
 
-rng('default');
-rng(1);
-
 % TODO: put name oy four tracker here
 tracker_name = 'kf';
 % TODO: select a sequence you want to test on
-sequence = 'bag';
+sequence = 'sunshade';
 % TODO: give path to the dataset folder
-dataset_path = './resources/vot2015';
+dataset_path = './resources/vot2014';
 
 params = struct;
 params.model = "RW";
-%params.q = 20;          % (h+w)
 params.r = 1;
 params.sigma = 0.2;     % epanechnikov kernel sigma
-params.bins = 8;        % number of histogram bins
-params.N = 100;          % number of particles
+params.bins = 20;        % number of histogram bins
+params.N = 50;         % number of particles
 params.alpha = 0.01;
-params.plot = false;
-% params.sigma = 2;
-% params.peak = 100;
-% params.s2tr = 2;
-% params.alpha = 0.125;
-% params.psr = 0.05;
-% params.lambda = 1e-5;
+params.plot = true;
 
 use_reinitialization = true;
 skip_after_fail = 5;
@@ -61,6 +51,7 @@ while frame <= min(numel(img_dir), size(gt, 1))
     
     % read frame
     img = imread(fullfile(base_path, img_dir(frame).name));
+%     img = rgb2hsv(img);
     
     if frame == start_frame
         % initialize tracker
@@ -72,14 +63,14 @@ while frame <= min(numel(img_dir), size(gt, 1))
         [tracker, bbox] = update(tracker, img, params);
     end
     
-    % show image
-%     subplot(4, 4, 1:12);
-%     cla;
     imshow(img);
     hold on;
     rectangle('Position',bbox, 'LineWidth',2, 'EdgeColor', 'y');
-    % show current number of failures & frame number
-    text(12, 15, sprintf('Failures: %d\nFrame: #%d\nFPS: %d', n_failures, frame, round(frame/toc)), 'Color','w', ...
+    text(12, 15, {...
+        sprintf("Failures: %d", n_failures)...
+        sprintf("Frame: #%d", frame)...
+        sprintf("FPS: %d", round(frame/toc))...
+        }, 'Color','w', ...
         'FontSize',10, 'FontWeight','normal', ...
         'BackgroundColor','k', 'Margin',1);
     plot_particles(tracker, params);
