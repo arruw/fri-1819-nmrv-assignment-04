@@ -3,18 +3,18 @@ function kf_tracker()
 % TODO: put name oy four tracker here
 tracker_name = 'kf';
 % TODO: select a sequence you want to test on
-sequence = 'ball';
+sequence = 'fish1';
 % TODO: give path to the dataset folder
 dataset_path = './resources/vot2014';
 
 params = struct;
 params.model = "NCV";
-params.q = 1;
+% params.q = 10;
 params.r = 1;
 params.sigma = 0.2;     % epanechnikov kernel sigma
-params.bins = 7;        % number of histogram bins
-params.N = 100;          % number of particles
-params.alpha = 0.1;     
+params.bins = 8;        % number of histogram bins
+params.N = 50;          % number of particles
+params.alpha = 0.01;     
 % params.sigma = 2;
 % params.peak = 100;
 % params.s2tr = 2;
@@ -109,9 +109,14 @@ end  % endfunction
 
 function plot_particles(tracker) 
     
-    for i = 1:size(tracker.particles, 1)
-       plot(tracker.particles(i, 1), tracker.particles(i, 2), 'y.', 'MarkerSize', tracker.weights(i)*10);
-       plot(tracker.particles(i, 1), tracker.particles(i, 2), 'ko', 'MarkerSize', tracker.weights(i)*5);
+    for i = 1:size(tracker.particles, 1)    
+        plot(tracker.particles(i, 1), tracker.particles(i, 2), 'y.', 'MarkerSize', tracker.weights(i)*30);
+        plot(tracker.particles(i, 1), tracker.particles(i, 2), 'ko', 'MarkerSize', tracker.weights(i)*10);
     end
 
+%     plot(...
+%         [tracker.center(1) tracker.center(1)+(tracker.center(3)*10)], ...
+%         [tracker.center(2) tracker.center(2)+(tracker.center(4)*10)], ...
+%         'r-');
+    
 end

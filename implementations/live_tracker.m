@@ -38,34 +38,20 @@ while true
         flag_init = false;
         bbox = getrect;
         tic;
-        tracker = mosse_initialize(I, bbox, params); 
+        tracker = kf_initialize(I, bbox, params); 
     else
-       [tracker, bbox] = mosse_update(tracker, I, params); 
+       [tracker, bbox] = kf_update(tracker, I, params); 
     end
     
-    subplot(7, 1, 1:6); 
     hold on;
     if mod(frame, 20) == 0
        cla;
     end
     imagesc(I); 
-    color = 'y';
-    if tracker.m(end) < params.peak*params.psr;
-        color = 'r';
-    end
-    rectangle('Position',bbox, 'LineWidth',2, 'EdgeColor',color);
+    rectangle('Position',bbox, 'LineWidth',2);
     text(5, 35, sprintf('Frame: #%d\nFPS: %d', frame, round(frame/toc)), 'Color','w', ...
         'FontSize',10, 'FontWeight','normal', ...
         'BackgroundColor','k', 'Margin',1);   
-    hold off;
-        
-    subplot(7, 1, 7);
-    hold on;
-    if mod(frame, 20) == 0
-       cla;
-    end
-    plot(1:frame, tracker.m, 'b'); ylim([0 params.peak*0.2]);
-    plot([1 frame], [params.peak*params.psr params.peak*params.psr], 'r'); ylim([0 params.peak*0.2]);
     hold off;
     drawnow;
     

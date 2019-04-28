@@ -8,38 +8,45 @@ function [state, location] = kf_update(state, I, params)
     % template = get_patch(I, [x_c y_c], 1, [state.bbox_t(3) state.bbox_t(4)]);
 
     % a) sample new particles
-    state.particles = sample_particles(state, params);
+    particles = sample_particles(state, params);
+    weights = zeros(params.N, 1);
+    A = state.A;
+    bins = params.bins;
+    sigma = params.sigma;
     
-    for i = 1:params.N
+    parfor (i = 1:params.N, 4)
+        particle = particles(i,:);
         % b) move each particle apply dinamic model and noise
-        state.particles(i,:) = (state.A*state.particles(i,:)' + mvnrnd([0 0 0 0], state.Q)')';
+        particle = (A*particle' + mvnrnd([0 0 0 0], state.Q)')';
         
         % c) update weights based on the model similarity
-        
+                  
         % extract model
-        template = get_patch(I, [state.particles(i, 1) state.particles(i, 2)], 1, [state.bbox(3) state.bbox(4)]);
-        hist = extract_histogram(template, params.bins, state.kernel);
+        template = get_patch(I, [particle(1) particle(2)], 1, [state.bbox(3) state.bbox(4)]);
+        hist = extract_histogram(template, bins, state.kernel);
         
+        % hellinger distance squared
         d = 1-sum(sqrt(state.hist.*hist), 'all');
         
         % convert similarity measure to weight
-        state.weights(i, 1) = exp(-(d^2)/(2*params.q));
-        % state.weights(i, 1) = d;
-        state.weights(i, 1) = exp(-(d)/2*(params.sigma^2));
+        weights(i, 1) = exp(-d/(2*sigma^2));
+        particles(i, :) = particle;
     end
         
     % d) compute new location of the target (weighted sum)
-    sw = sum(state.weights);
-    state.center(1) = sum(state.particles(:,1) .* state.weights)/sw;
-    state.center(2) = sum(state.particles(:,2) .* state.weights)/sw;
-    state.center(3) = sum(state.particles(:,3) .* state.weights)/sw;
-    state.center(4) = sum(state.particles(:,4) .* state.weights)/sw;
+    weights(~isfinite(weights)) = 1e-10;
+    state.weights = weights / sum(weights, 'all');
+    state.particles = particles;
+    state.center(1) = sum(state.particles(:,1) .* state.weights);
+    state.center(2) = sum(state.particles(:,2) .* state.weights);
+    state.center(3) = sum(state.particles(:,3) .* state.weights);
+    state.center(4) = sum(state.particles(:,4) .* state.weights);
    
     template = get_patch(I, [state.center(1) state.center(2)], 1, [state.bbox(3) state.bbox(4)]);
-    color_pdf = extract_color_pdf(template, params.bins, state.cos_window);
+    hist = extract_histogram(template, params.bins, state.kernel);
     
     % update model
-    % state.color_pdf = (1-params.alpha)*state.color_pdf + params.alpha*color_pdf;
+    state.hist = (1-params.alpha)*state.hist + params.alpha*hist;
     
     state.bbox = [...
         state.center(1)-state.bbox(3)/2 ...
