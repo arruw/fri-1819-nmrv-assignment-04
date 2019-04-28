@@ -1,20 +1,24 @@
 function kf_tracker()
 
+rng('default');
+rng(1);
+
 % TODO: put name oy four tracker here
 tracker_name = 'kf';
 % TODO: select a sequence you want to test on
-sequence = 'fish1';
+sequence = 'bag';
 % TODO: give path to the dataset folder
-dataset_path = './resources/vot2014';
+dataset_path = './resources/vot2015';
 
 params = struct;
-params.model = "NCV";
-% params.q = 10;
+params.model = "RW";
+%params.q = 20;          % (h+w)
 params.r = 1;
 params.sigma = 0.2;     % epanechnikov kernel sigma
 params.bins = 8;        % number of histogram bins
-params.N = 50;          % number of particles
-params.alpha = 0.01;     
+params.N = 100;          % number of particles
+params.alpha = 0.01;
+params.plot = false;
 % params.sigma = 2;
 % params.peak = 100;
 % params.s2tr = 2;
@@ -53,7 +57,7 @@ n_failures = 0;
 figure(1); clf;
 frame = 1;
 tic;
-while frame <= numel(img_dir)
+while frame <= min(numel(img_dir), size(gt, 1))
     
     % read frame
     img = imread(fullfile(base_path, img_dir(frame).name));
@@ -73,23 +77,15 @@ while frame <= numel(img_dir)
 %     cla;
     imshow(img);
     hold on;
-    rectangle('Position',bbox, 'LineWidth',2);
+    rectangle('Position',bbox, 'LineWidth',2, 'EdgeColor', 'y');
     % show current number of failures & frame number
     text(12, 15, sprintf('Failures: %d\nFrame: #%d\nFPS: %d', n_failures, frame, round(frame/toc)), 'Color','w', ...
         'FontSize',10, 'FontWeight','normal', ...
         'BackgroundColor','k', 'Margin',1);
-    plot_particles(tracker);
+    plot_particles(tracker, params);
     hold off;
     drawnow;
-    
-%     subplot(4, 4, 13:16);
-%     hold on;
-%     cla;
-%     plot(1:(frame-start_frame+1), tracker.m, 'b'); ylim([0 params.peak]);
-%     plot([1 frame-start_frame+1], [params.peak*params.psr params.peak*params.psr], 'r'); ylim([0 params.peak]);
-%     hold off;
-%     drawnow;
-    
+        
     % detect failures and reinit
     if use_reinitialization
         area = rectint(bbox, gt(frame,:));
@@ -107,16 +103,30 @@ end
 
 end  % endfunction
 
-function plot_particles(tracker) 
-    
-    for i = 1:size(tracker.particles, 1)    
-        plot(tracker.particles(i, 1), tracker.particles(i, 2), 'y.', 'MarkerSize', tracker.weights(i)*30);
-        plot(tracker.particles(i, 1), tracker.particles(i, 2), 'ko', 'MarkerSize', tracker.weights(i)*10);
+function plot_particles(tracker, params) 
+    if ~params.plot
+       return 
+    end
+        
+    for i = 1:size(tracker.particles, 1) 
+        if tracker.weights(i) == 0
+            continue;
+        end
+        
+        plot(tracker.particles(i, 1), tracker.particles(i, 2), 'y.', 'MarkerSize', tracker.weights(i)*params.N*3.5/2);
+        plot(tracker.particles(i, 1), tracker.particles(i, 2), 'ko', 'MarkerSize', tracker.weights(i)*params.N*1/2);
     end
 
-%     plot(...
-%         [tracker.center(1) tracker.center(1)+(tracker.center(3)*10)], ...
-%         [tracker.center(2) tracker.center(2)+(tracker.center(4)*10)], ...
-%         'r-');
+    switch params.model
+        case "RW"
+            
+        case "NCV"
+            plot(...
+                [tracker.center(1) tracker.center(1)+(tracker.center(3)*5)], ...
+                [tracker.center(2) tracker.center(2)+(tracker.center(4)*5)], ...
+                'r-');
+        case "NCA"
+            
+    end
     
 end

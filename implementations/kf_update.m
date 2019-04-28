@@ -1,46 +1,41 @@
 function [state, location] = kf_update(state, I, params)
     
-    % get current center
-    % x_c = state.bbox_t(1)+state.bbox_t(3)/2;
-    % y_c = state.bbox_t(2)+state.bbox_t(4)/2;
-
-    % extract template
-    % template = get_patch(I, [x_c y_c], 1, [state.bbox_t(3) state.bbox_t(4)]);
-
     % a) sample new particles
-    particles = sample_particles(state, params);
-    weights = zeros(params.N, 1);
-    A = state.A;
-    bins = params.bins;
-    sigma = params.sigma;
+    state.particles = sample_particles(state, params);
+    state.weights = ones(params.N, 1) / params.N;
     
-    parfor (i = 1:params.N, 4)
-        particle = particles(i,:);
+    for i = 1:params.N
         % b) move each particle apply dinamic model and noise
-        particle = (A*particle' + mvnrnd([0 0 0 0], state.Q)')';
+        state.particles(i,:) = (state.A*state.particles(i,:)' + mvnrnd(zeros(size(state.center)), state.Q)')';
+                
+        if ~is_on_image(I, state.particles(i,:))
+            state.weights(i, 1) = 0;
+            continue;
+        end
         
         % c) update weights based on the model similarity
                   
         % extract model
-        template = get_patch(I, [particle(1) particle(2)], 1, [state.bbox(3) state.bbox(4)]);
-        hist = extract_histogram(template, bins, state.kernel);
+        template = get_patch(I, [state.particles(i,1) state.particles(i,2)], 1, [state.bbox(3) state.bbox(4)]);
+        hist = extract_histogram(template, params.bins, state.kernel);
         
-        % hellinger distance squared
-        d = 1-sum(sqrt(state.hist.*hist), 'all');
+        % similarity
+        d = 1 - sum(sqrt(hist .* state.hist), 'all');
         
         % convert similarity measure to weight
-        weights(i, 1) = exp(-d/(2*sigma^2));
-        particles(i, :) = particle;
+        state.weights(i, 1) = exp(-d/(2*params.sigma^2));
     end
         
     % d) compute new location of the target (weighted sum)
-    weights(~isfinite(weights)) = 1e-10;
-    state.weights = weights / sum(weights, 'all');
-    state.particles = particles;
-    state.center(1) = sum(state.particles(:,1) .* state.weights);
-    state.center(2) = sum(state.particles(:,2) .* state.weights);
-    state.center(3) = sum(state.particles(:,3) .* state.weights);
-    state.center(4) = sum(state.particles(:,4) .* state.weights);
+    
+    state.weights(~isfinite(state.weights)) = 1e-100;
+    state.weights = state.weights / sum(state.weights);
+    state.weights(~isfinite(state.weights)) = 1e-100;
+    
+    state.center = sum(state.particles .* state.weights);
+%     state.center(2) = sum(state.particles(:,2) .* state.weights);
+%     state.center(3) = sum(state.particles(:,3) .* state.weights);
+%     state.center(4) = sum(state.particles(:,4) .* state.weights);
    
     template = get_patch(I, [state.center(1) state.center(2)], 1, [state.bbox(3) state.bbox(4)]);
     hist = extract_histogram(template, params.bins, state.kernel);
@@ -64,4 +59,12 @@ function particles = sample_particles(state, params)
     R = cumsum(Q);
     [~,I] = histc(rand(1,params.N),R);
     particles = state.particles(I+1,:);
+end
+
+function ok = is_on_image(I, particle)
+    x = particle(1);
+    y = particle(2);
+    [h, w] = size(I);
+    
+    ok = x > 1 && y > 1 && x <= w && x <= h;
 end
